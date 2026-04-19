@@ -1,16 +1,20 @@
 <!doctype html>
-<html lang="uk">
+<html lang="ua">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>GitHub Stats Visualizer</title>
+
+    <link rel="shortcut icon" href="public/favicon.png" type="image/png" />
     <link rel="stylesheet" href="style.css" />
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
   </head>
+
   <body>
     <div class="container">
       <h1>GitHub Profile Analyzer</h1>
+
       <div class="search-box">
         <input
           type="text"
@@ -28,7 +32,7 @@
           <div>
             <h2 id="name"></h2>
             <p id="bio"></p>
-            <a id="profile-link" target="_blank" href="">Перейти в профіль</a>
+            <a id="profile-link" target="_blank">Перейти в профіль</a>
           </div>
         </div>
 
@@ -47,9 +51,28 @@
           </div>
         </div>
 
+        <div class="top-repo">
+          <h3>Топ репозиторій</h3>
+          <div id="top-repo"></div>
+        </div>
+
         <div class="chart-container">
           <h3>Стек мов програмування</h3>
           <canvas id="langChart"></canvas>
+        </div>
+
+        <div class="chart-container">
+          <h3>Популярність репозиторіїв (Stars)</h3>
+          <canvas id="starsChart"></canvas>
+        </div>
+
+        <div class="repo-list">
+          <h3>Репозиторії</h3>
+          <div id="repos"></div>
+
+          <button id="loadMoreBtn" style="display: none; margin-top: 10px">
+            Показати ще
+          </button>
         </div>
       </div>
     </div>

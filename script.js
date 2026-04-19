@@ -1,4 +1,8 @@
 let chartInstance;
+let starsChartInstance;
+
+let allRepos = [];
+let visibleCount = 5;
 
 document.getElementById("searchBtn").addEventListener("click", getStats);
 
@@ -17,9 +21,7 @@ async function getStats() {
 
   try {
     const userResp = await fetch(`https://api.github.com/users/${username}`);
-    if (!userResp.ok) {
-      throw new Error("Користувача не знайдено");
-    }
+    if (!userResp.ok) throw new Error("Користувача не знайдено");
 
     const reposResp = await fetch(
       `https://api.github.com/users/${username}/repos?per_page=100`,
@@ -29,8 +31,19 @@ async function getStats() {
     const repos = await reposResp.json();
 
     displayUser(user);
+
     const langData = processRepos(repos);
     renderChart(langData);
+
+    renderStarsChart(repos);
+
+    allRepos = repos.sort((a, b) => b.stargazers_count - a.stargazers_count);
+
+    visibleCount = 5;
+
+    displayRepos();
+    displayTopRepo(allRepos);
+    setupLoadMore();
 
     card.style.display = "block";
   } catch (err) {
@@ -104,4 +117,104 @@ function renderChart(langData) {
       },
     },
   });
+}
+
+function renderStarsChart(repos) {
+  const ctx = document.getElementById("starsChart").getContext("2d");
+
+  const sorted = [...repos]
+    .sort((a, b) => b.stargazers_count - a.stargazers_count)
+    .slice(0, 5);
+
+  if (starsChartInstance) {
+    starsChartInstance.destroy();
+  }
+
+  starsChartInstance = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels: sorted.map((r) => r.name),
+      datasets: [
+        {
+          label: "Stars",
+          data: sorted.map((r) => r.stargazers_count),
+          backgroundColor: "#58a6ff",
+        },
+      ],
+    },
+    options: {
+      plugins: {
+        legend: { display: false },
+      },
+      scales: {
+        x: {
+          ticks: { color: "#c9d1d9" },
+        },
+        y: {
+          ticks: { color: "#c9d1d9" },
+        },
+      },
+    },
+  });
+}
+
+function displayRepos() {
+  const container = document.getElementById("repos");
+
+  const visibleRepos = allRepos.slice(0, visibleCount);
+
+  container.innerHTML = visibleRepos
+    .map(
+      (repo) => `
+      <div class="repo-item">
+        <a href="${repo.html_url}" target="_blank">${repo.name}</a>
+        <div class="repo-meta">
+          ⭐ ${repo.stargazers_count} | 🍴 ${repo.forks_count}
+        </div>
+      </div>
+    `,
+    )
+    .join("");
+
+  updateLoadMoreButton();
+}
+
+function setupLoadMore() {
+  const btn = document.getElementById("loadMoreBtn");
+
+  btn.onclick = () => {
+    visibleCount += 5;
+    displayRepos();
+  };
+
+  updateLoadMoreButton();
+}
+
+function updateLoadMoreButton() {
+  const btn = document.getElementById("loadMoreBtn");
+
+  if (visibleCount >= allRepos.length) {
+    btn.style.display = "none";
+  } else {
+    btn.style.display = "block";
+  }
+}
+
+function displayTopRepo(repos) {
+  if (!repos.length) return;
+
+  const top = repos.reduce(
+    (max, repo) => (repo.stargazers_count > max.stargazers_count ? repo : max),
+    repos[0],
+  );
+
+  const container = document.getElementById("top-repo");
+
+  container.innerHTML = `
+    <a href="${top.html_url}" target="_blank">${top.name}</a>
+    <p>${top.description || "Без опису"}</p>
+    <div class="repo-meta">
+      ⭐ ${top.stargazers_count} | 🍴 ${top.forks_count}
+    </div>
+  `;
 }
