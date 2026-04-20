@@ -4,7 +4,28 @@ let starsChartInstance;
 let allRepos = [];
 let visibleCount = 5;
 
+document.body.classList.add("loading");
+
+window.addEventListener("load", () => {
+  const intro = document.getElementById("intro");
+
+  setTimeout(() => {
+    intro.style.opacity = "0";
+    document.body.classList.remove("loading");
+  }, 2000);
+
+  setTimeout(() => {
+    intro.style.display = "none";
+  }, 3000);
+});
+
 document.getElementById("searchBtn").addEventListener("click", getStats);
+
+document.getElementById("username").addEventListener("keydown", function (e) {
+  if (e.key === "Enter") {
+    document.getElementById("searchBtn").click();
+  }
+});
 
 async function getStats() {
   const username = document.getElementById("username").value.trim();
