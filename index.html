@@ -28,6 +28,8 @@
         <button id="searchBtn">Аналізувати</button>
       </div>
 
+      <div id="error" class="error"></div>
+
       <div id="loader" class="loader" style="display: none"></div>
 
       <div id="profile-card" class="card" style="display: none">
@@ -36,6 +38,7 @@
           <div>
             <h2 id="name"></h2>
             <p id="bio"></p>
+            <p id="extra"></p>
             <a id="profile-link" target="_blank">Перейти в профіль</a>
           </div>
         </div>
@@ -46,12 +49,20 @@
             <span id="repo-count" class="value">0</span>
           </div>
           <div class="stat-item">
-            <span class="label">Зірки (Stars)</span>
+            <span class="label">Зірки</span>
             <span id="star-count" class="value">0</span>
           </div>
           <div class="stat-item">
             <span class="label">Підписники</span>
             <span id="followers" class="value">0</span>
+          </div>
+          <div class="stat-item">
+            <span class="label">Середні зірки</span>
+            <span id="avg-stars" class="value">0</span>
+          </div>
+          <div class="stat-item">
+            <span class="label">Топ мова</span>
+            <span id="top-lang" class="value">-</span>
           </div>
         </div>
 
@@ -66,7 +77,7 @@
         </div>
 
         <div class="chart-container">
-          <h3>Популярність репозиторіїв (Stars)</h3>
+          <h3>Популярність репозиторіїв</h3>
           <canvas id="starsChart"></canvas>
         </div>
 

@@ -4,62 +4,89 @@ let starsChartInstance;
 let allRepos = [];
 let visibleCount = 5;
 
-document.body.classList.add("loading");
+let debounceTimeout;
 
-window.addEventListener("load", () => {
-  const intro = document.getElementById("intro");
-
-  setTimeout(() => {
-    intro.style.opacity = "0";
-    document.body.classList.remove("loading");
-  }, 2000);
-
-  setTimeout(() => {
-    intro.style.display = "none";
-  }, 3000);
+document.getElementById("username").addEventListener("input", () => {
+  clearTimeout(debounceTimeout);
+  debounceTimeout = setTimeout(getStats, 500);
 });
 
 document.getElementById("searchBtn").addEventListener("click", getStats);
 
-document.getElementById("username").addEventListener("keydown", function (e) {
-  if (e.key === "Enter") {
-    document.getElementById("searchBtn").click();
+async function fetchAllRepos(username) {
+  let page = 1;
+  let all = [];
+  let hasMore = true;
+
+  while (hasMore) {
+    const resp = await fetch(
+      `https://api.github.com/users/${username}/repos?per_page=100&page=${page}`,
+    );
+
+    await checkRateLimit(resp);
+
+    if (!resp.ok) throw new Error("Помилка завантаження репозиторіїв");
+
+    const data = await resp.json();
+    all = [...all, ...data];
+
+    if (data.length < 100) {
+      hasMore = false;
+    } else {
+      page++;
+    }
   }
-});
+
+  return all;
+}
+
+async function checkRateLimit(resp) {
+  if (resp.status === 403) {
+    const data = await resp.json();
+    if (data.message.includes("rate limit")) {
+      throw new Error("GitHub API ліміт перевищено");
+    }
+  }
+}
+
+function showError(msg) {
+  const el = document.getElementById("error");
+  el.innerText = msg;
+  el.style.display = "block";
+}
+
+function clearError() {
+  const el = document.getElementById("error");
+  el.style.display = "none";
+}
 
 async function getStats() {
   const username = document.getElementById("username").value.trim();
   const loader = document.getElementById("loader");
   const card = document.getElementById("profile-card");
 
-  if (!username) {
-    alert("Введіть ім'я користувача!");
-    return;
-  }
+  if (!username) return;
 
   loader.style.display = "block";
   card.style.display = "none";
+  clearError();
 
   try {
     const userResp = await fetch(`https://api.github.com/users/${username}`);
+    await checkRateLimit(userResp);
+
     if (!userResp.ok) throw new Error("Користувача не знайдено");
 
-    const reposResp = await fetch(
-      `https://api.github.com/users/${username}/repos?per_page=100`,
-    );
-
     const user = await userResp.json();
-    const repos = await reposResp.json();
+    const repos = await fetchAllRepos(username);
 
     displayUser(user);
-
     const langData = processRepos(repos);
-    renderChart(langData);
 
+    renderChart(langData);
     renderStarsChart(repos);
 
     allRepos = repos.sort((a, b) => b.stargazers_count - a.stargazers_count);
-
     visibleCount = 5;
 
     displayRepos();
@@ -68,7 +95,7 @@ async function getStats() {
 
     card.style.display = "block";
   } catch (err) {
-    alert(err.message);
+    showError(err.message);
   } finally {
     loader.style.display = "none";
   }
@@ -77,11 +104,15 @@ async function getStats() {
 function displayUser(user) {
   document.getElementById("avatar").src = user.avatar_url;
   document.getElementById("name").innerText = user.name || user.login;
-  document.getElementById("bio").innerText =
-    user.bio || "Опис профілю відсутній";
-  document.getElementById("repo-count").innerText = user.public_repos;
+  document.getElementById("bio").innerText = user.bio || "Без опису";
+  document.getElementById("repo-count").innerText = `${user.public_repos}`;
   document.getElementById("followers").innerText = user.followers;
   document.getElementById("profile-link").href = user.html_url;
+
+  const created = new Date(user.created_at).toLocaleDateString();
+
+  document.getElementById("extra").innerText =
+    `📅 ${created} | 🏢 ${user.company || "-"} | 📍 ${user.location || "-"}`;
 }
 
 function processRepos(repos) {
@@ -90,7 +121,6 @@ function processRepos(repos) {
 
   repos.forEach((repo) => {
     totalStars += repo.stargazers_count;
-
     if (repo.language) {
       languages[repo.language] = (languages[repo.language] || 0) + 1;
     }
@@ -98,15 +128,37 @@ function processRepos(repos) {
 
   document.getElementById("star-count").innerText = totalStars;
 
+  const avg = repos.length ? (totalStars / repos.length).toFixed(1) : 0;
+  document.getElementById("avg-stars").innerText = avg;
+
+  let topLang = "-";
+  let percent = 0;
+
+  if (Object.keys(languages).length) {
+    const sorted = Object.entries(languages).sort((a, b) => b[1] - a[1]);
+    topLang = sorted[0][0];
+    percent = ((sorted[0][1] / repos.length) * 100).toFixed(0);
+  }
+
+  document.getElementById("top-lang").innerText =
+    topLang !== "-" ? `${topLang} (${percent}%)` : "-";
+
   return languages;
 }
 
 function renderChart(langData) {
-  const ctx = document.getElementById("langChart").getContext("2d");
+  const canvas = document.getElementById("langChart");
 
-  if (chartInstance) {
-    chartInstance.destroy();
+  if (!Object.keys(langData).length) {
+    canvas.style.display = "none";
+    return;
   }
+
+  canvas.style.display = "block";
+
+  const ctx = canvas.getContext("2d");
+
+  if (chartInstance) chartInstance.destroy();
 
   chartInstance = new Chart(ctx, {
     type: "doughnut",
@@ -115,27 +167,9 @@ function renderChart(langData) {
       datasets: [
         {
           data: Object.values(langData),
-          backgroundColor: [
-            "#58a6ff",
-            "#238636",
-            "#f0883e",
-            "#d29922",
-            "#bc8cff",
-            "#f85149",
-          ],
-          borderWidth: 0,
+          backgroundColor: ["#58a6ff", "#238636", "#f0883e", "#d29922"],
         },
       ],
-    },
-    options: {
-      plugins: {
-        legend: {
-          position: "bottom",
-          labels: {
-            color: "#c9d1d9",
-          },
-        },
-      },
     },
   });
 }
@@ -147,9 +181,7 @@ function renderStarsChart(repos) {
     .sort((a, b) => b.stargazers_count - a.stargazers_count)
     .slice(0, 5);
 
-  if (starsChartInstance) {
-    starsChartInstance.destroy();
-  }
+  if (starsChartInstance) starsChartInstance.destroy();
 
   starsChartInstance = new Chart(ctx, {
     type: "bar",
@@ -159,22 +191,8 @@ function renderStarsChart(repos) {
         {
           label: "Stars",
           data: sorted.map((r) => r.stargazers_count),
-          backgroundColor: "#58a6ff",
         },
       ],
-    },
-    options: {
-      plugins: {
-        legend: { display: false },
-      },
-      scales: {
-        x: {
-          ticks: { color: "#c9d1d9" },
-        },
-        y: {
-          ticks: { color: "#c9d1d9" },
-        },
-      },
     },
   });
 }
@@ -182,18 +200,20 @@ function renderStarsChart(repos) {
 function displayRepos() {
   const container = document.getElementById("repos");
 
-  const visibleRepos = allRepos.slice(0, visibleCount);
+  if (!allRepos.length) {
+    container.innerHTML = "<p>Немає репозиторіїв</p>";
+    return;
+  }
 
-  container.innerHTML = visibleRepos
+  const visible = allRepos.slice(0, visibleCount);
+
+  container.innerHTML = visible
     .map(
-      (repo) => `
+      (r) => `
       <div class="repo-item">
-        <a href="${repo.html_url}" target="_blank">${repo.name}</a>
-        <div class="repo-meta">
-          ⭐ ${repo.stargazers_count} | 🍴 ${repo.forks_count}
-        </div>
-      </div>
-    `,
+        <a href="${r.html_url}" target="_blank">${r.name}</a>
+        <div>⭐ ${r.stargazers_count} | 🍴 ${r.forks_count}</div>
+      </div>`,
     )
     .join("");
 
@@ -202,40 +222,27 @@ function displayRepos() {
 
 function setupLoadMore() {
   const btn = document.getElementById("loadMoreBtn");
-
   btn.onclick = () => {
     visibleCount += 5;
     displayRepos();
   };
-
   updateLoadMoreButton();
 }
 
 function updateLoadMoreButton() {
   const btn = document.getElementById("loadMoreBtn");
-
-  if (visibleCount >= allRepos.length) {
-    btn.style.display = "none";
-  } else {
-    btn.style.display = "block";
-  }
+  btn.style.display = visibleCount >= allRepos.length ? "none" : "block";
 }
 
 function displayTopRepo(repos) {
   if (!repos.length) return;
 
-  const top = repos.reduce(
-    (max, repo) => (repo.stargazers_count > max.stargazers_count ? repo : max),
-    repos[0],
+  const top = repos.reduce((a, b) =>
+    b.stargazers_count > a.stargazers_count ? b : a,
   );
 
-  const container = document.getElementById("top-repo");
-
-  container.innerHTML = `
+  document.getElementById("top-repo").innerHTML = `
     <a href="${top.html_url}" target="_blank">${top.name}</a>
     <p>${top.description || "Без опису"}</p>
-    <div class="repo-meta">
-      ⭐ ${top.stargazers_count} | 🍴 ${top.forks_count}
-    </div>
   `;
 }
