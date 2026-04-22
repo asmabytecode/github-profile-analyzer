@@ -199,6 +199,64 @@ button:hover::after {
   color: var(--muted);
 }
 
+.insights {
+  margin-top: 20px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.insights h3 {
+  margin-bottom: 12px;
+  font-size: 18px;
+  color: var(--accent);
+}
+
+#insights-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+#insights-list li {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  line-height: 1.4;
+  transition: all 0.2s ease;
+}
+
+#insights-list li:hover {
+  background: rgba(255, 255, 255, 0.06);
+  transform: translateY(-2px);
+  border-color: var(--accent);
+}
+
+#insights-list a {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+#insights-list a:hover {
+  text-decoration: underline;
+}
+
+#insights-list li:nth-child(1) {
+  border-left: 4px solid #58a6ff;
+}
+
+#insights-list li:nth-child(2) {
+  border-left: 4px solid #f78166;
+}
+
+#insights-list li:nth-child(3) {
+  border-left: 4px solid #d2a8ff;
+}
+
 .repo-item {
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid var(--border);

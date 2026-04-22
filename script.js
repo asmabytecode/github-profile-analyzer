@@ -56,8 +56,7 @@ function showError(msg) {
 }
 
 function clearError() {
-  const el = document.getElementById("error");
-  el.style.display = "none";
+  document.getElementById("error").style.display = "none";
 }
 
 async function getStats() {
@@ -81,7 +80,11 @@ async function getStats() {
     const repos = await fetchAllRepos(username);
 
     displayUser(user);
+
     const langData = processRepos(repos);
+
+    const insightsData = generateInsights(repos);
+    displayInsights(insightsData);
 
     renderChart(langData);
     renderStarsChart(repos);
@@ -105,7 +108,7 @@ function displayUser(user) {
   document.getElementById("avatar").src = user.avatar_url;
   document.getElementById("name").innerText = user.name || user.login;
   document.getElementById("bio").innerText = user.bio || "Без опису";
-  document.getElementById("repo-count").innerText = `${user.public_repos}`;
+  document.getElementById("repo-count").innerText = user.public_repos;
   document.getElementById("followers").innerText = user.followers;
   document.getElementById("profile-link").href = user.html_url;
 
@@ -127,9 +130,9 @@ function processRepos(repos) {
   });
 
   document.getElementById("star-count").innerText = totalStars;
-
-  const avg = repos.length ? (totalStars / repos.length).toFixed(1) : 0;
-  document.getElementById("avg-stars").innerText = avg;
+  document.getElementById("avg-stars").innerText = repos.length
+    ? (totalStars / repos.length).toFixed(1)
+    : 0;
 
   let topLang = "-";
   let percent = 0;
@@ -146,6 +149,69 @@ function processRepos(repos) {
   return languages;
 }
 
+function generateInsights(repos) {
+  let langUsage = {};
+  let langStars = {};
+
+  repos.forEach((r) => {
+    if (!r.language) return;
+
+    langUsage[r.language] = (langUsage[r.language] || 0) + 1;
+    langStars[r.language] = (langStars[r.language] || 0) + r.stargazers_count;
+  });
+
+  const mostUsed = Object.entries(langUsage).sort((a, b) => b[1] - a[1])[0];
+  const mostStarred = Object.entries(langStars).sort((a, b) => b[1] - a[1])[0];
+
+  const underrated = repos
+    .filter((r) => r.forks_count > 5 && r.stargazers_count < r.forks_count)
+    .sort((a, b) => b.forks_count - a.forks_count)
+    .slice(0, 3);
+
+  let insights = [];
+
+  if (mostUsed) {
+    insights.push(`Найчастіша мова: ${mostUsed[0]} (${mostUsed[1]} репо)`);
+  }
+
+  if (mostStarred) {
+    insights.push(
+      `Найуспішніша мова: ${mostStarred[0]} (${mostStarred[1]} ⭐)`,
+    );
+  }
+
+  if (mostUsed && mostStarred && mostUsed[0] !== mostStarred[0]) {
+    insights.push(
+      `Цікаво: більше коду на ${mostUsed[0]}, але більше зірок у ${mostStarred[0]}`,
+    );
+  }
+
+  if (underrated.length) {
+    insights.push("Недооцінені репозиторії:");
+  }
+
+  return { insights, underrated };
+}
+
+function displayInsights(data) {
+  const list = document.getElementById("insights-list");
+
+  let html = data.insights.map((i) => `<li>${i}</li>`).join("");
+
+  html += data.underrated
+    .map(
+      (r) => `
+      <li>
+        🔹 <a href="${r.html_url}" target="_blank">${r.name}</a>
+        (⭐ ${r.stargazers_count} | 🍴 ${r.forks_count})
+      </li>
+    `,
+    )
+    .join("");
+
+  list.innerHTML = html;
+}
+
 function renderChart(langData) {
   const canvas = document.getElementById("langChart");
 
@@ -156,18 +222,15 @@ function renderChart(langData) {
 
   canvas.style.display = "block";
 
-  const ctx = canvas.getContext("2d");
-
   if (chartInstance) chartInstance.destroy();
 
-  chartInstance = new Chart(ctx, {
+  chartInstance = new Chart(canvas, {
     type: "doughnut",
     data: {
       labels: Object.keys(langData),
       datasets: [
         {
           data: Object.values(langData),
-          backgroundColor: ["#58a6ff", "#238636", "#f0883e", "#d29922"],
         },
       ],
     },
@@ -200,11 +263,6 @@ function renderStarsChart(repos) {
 function displayRepos() {
   const container = document.getElementById("repos");
 
-  if (!allRepos.length) {
-    container.innerHTML = "<p>Немає репозиторіїв</p>";
-    return;
-  }
-
   const visible = allRepos.slice(0, visibleCount);
 
   container.innerHTML = visible
@@ -230,8 +288,8 @@ function setupLoadMore() {
 }
 
 function updateLoadMoreButton() {
-  const btn = document.getElementById("loadMoreBtn");
-  btn.style.display = visibleCount >= allRepos.length ? "none" : "block";
+  document.getElementById("loadMoreBtn").style.display =
+    visibleCount >= allRepos.length ? "none" : "block";
 }
 
 function displayTopRepo(repos) {
