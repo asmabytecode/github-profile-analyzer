@@ -1,5 +1,6 @@
 let chartInstance;
 let starsChartInstance;
+let activityChartInstance;
 
 let allRepos = [];
 let visibleCount = 5;
@@ -85,6 +86,8 @@ async function getStats() {
 
     const insightsData = generateInsights(repos);
     displayInsights(insightsData);
+
+    await processAdvancedStats(username, repos);
 
     renderChart(langData);
     renderStarsChart(repos);
@@ -187,7 +190,7 @@ function generateInsights(repos) {
   }
 
   if (underrated.length) {
-    insights.push("Недооцінені репозиторії:");
+    insights.push("⚠️ Недооцінені репозиторії:");
   }
 
   return { insights, underrated };
@@ -210,6 +213,68 @@ function displayInsights(data) {
     .join("");
 
   list.innerHTML = html;
+}
+
+async function processAdvancedStats(username, repos) {
+  let forkCount = 0;
+  let originalCount = 0;
+  let totalIssues = 0;
+  let yearly = {};
+
+  repos.forEach((r) => {
+    if (r.fork) forkCount++;
+    else originalCount++;
+
+    totalIssues += r.open_issues_count;
+
+    const year = new Date(r.created_at).getFullYear();
+    yearly[year] = (yearly[year] || 0) + 1;
+  });
+
+  document.getElementById("fork-ratio").innerText =
+    `${originalCount} / ${forkCount}`;
+
+  document.getElementById("open-issues").innerText = totalIssues;
+
+  renderActivityChart(yearly);
+
+  try {
+    const resp = await fetch(`https://api.github.com/users/${username}/events`);
+    if (!resp.ok) return;
+
+    const events = await resp.json();
+
+    if (events.length) {
+      const last = new Date(events[0].created_at);
+      document.getElementById("last-activity").innerText =
+        last.toLocaleDateString();
+    }
+  } catch {}
+}
+
+function renderActivityChart(data) {
+  const ctx = document.getElementById("activityChart").getContext("2d");
+
+  if (activityChartInstance) activityChartInstance.destroy();
+
+  const years = Object.keys(data).sort();
+
+  activityChartInstance = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels: years,
+      datasets: [
+        {
+          label: "Repos per year",
+          data: years.map((y) => data[y]),
+          borderColor: "#4f8cff",
+          backgroundColor: "rgba(79,140,255,0.2)",
+          fill: true,
+          tension: 0.3,
+        },
+      ],
+    },
+  });
 }
 
 function renderChart(langData) {

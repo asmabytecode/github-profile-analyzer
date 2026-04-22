@@ -75,6 +75,23 @@
           <ul id="insights-list"></ul>
         </div>
 
+        <div class="extra-stats">
+          <div class="stat-item">
+            <span class="label">Fork / Original</span>
+            <span id="fork-ratio" class="value">-</span>
+          </div>
+
+          <div class="stat-item">
+            <span class="label">Open Issues</span>
+            <span id="open-issues" class="value">0</span>
+          </div>
+
+          <div class="stat-item">
+            <span class="label">Остання активність</span>
+            <span id="last-activity" class="value">-</span>
+          </div>
+        </div>
+
         <div class="chart-container">
           <h3>Стек мов програмування</h3>
           <canvas id="langChart"></canvas>
@@ -83,6 +100,11 @@
         <div class="chart-container">
           <h3>Популярність репозиторіїв</h3>
           <canvas id="starsChart"></canvas>
+        </div>
+
+        <div class="chart-container">
+          <h3>📅 Активність по роках</h3>
+          <canvas id="activityChart"></canvas>
         </div>
 
         <div class="repo-list">

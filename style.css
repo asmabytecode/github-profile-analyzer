@@ -153,6 +153,13 @@ button:hover::after {
   margin-bottom: 25px;
 }
 
+.extra-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15px;
+  margin-bottom: 25px;
+}
+
 .stat-item {
   background: rgba(255, 255, 255, 0.03);
   padding: 15px;
@@ -278,12 +285,6 @@ button:hover::after {
   font-weight: 500;
 }
 
-.repo-meta {
-  font-size: 0.8em;
-  color: var(--muted);
-  margin-top: 6px;
-}
-
 .chart-container {
   margin-top: 25px;
   padding: 15px;
@@ -332,19 +333,6 @@ h3 {
   -webkit-text-fill-color: transparent;
 }
 
-::-webkit-scrollbar {
-  width: 8px;
-}
-
-::-webkit-scrollbar-thumb {
-  background: rgba(79, 140, 255, 0.4);
-  border-radius: 10px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(79, 140, 255, 0.7);
-}
-
 @keyframes spin {
   to {
     transform: rotate(360deg);
@@ -381,7 +369,8 @@ h3 {
 }
 
 @media (max-width: 600px) {
-  .stats-grid {
+  .stats-grid,
+  .extra-stats {
     grid-template-columns: 1fr;
   }
 
