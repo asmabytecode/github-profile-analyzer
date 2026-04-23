@@ -7,6 +7,8 @@ let visibleCount = 5;
 
 let debounceTimeout;
 
+const CACHE_TTL = 10 * 60 * 1000;
+
 document.getElementById("username").addEventListener("input", () => {
   clearTimeout(debounceTimeout);
   debounceTimeout = setTimeout(getStats, 500);
@@ -14,21 +16,60 @@ document.getElementById("username").addEventListener("input", () => {
 
 document.getElementById("searchBtn").addEventListener("click", getStats);
 
+function getCache(username) {
+  const cached = localStorage.getItem(username);
+  if (!cached) return null;
+
+  try {
+    const parsed = JSON.parse(cached);
+    if (Date.now() - parsed.timestamp > CACHE_TTL) {
+      localStorage.removeItem(username);
+      return null;
+    }
+    return parsed.data;
+  } catch {
+    return null;
+  }
+}
+
+function setCache(username, data) {
+  localStorage.setItem(
+    username,
+    JSON.stringify({
+      data,
+      timestamp: Date.now(),
+    }),
+  );
+}
+
+async function fetchWithRetry(url, retries = 2) {
+  try {
+    const resp = await fetch(url);
+
+    await checkRateLimit(resp);
+
+    if (!resp.ok) throw new Error("API error");
+
+    return await resp.json();
+  } catch (err) {
+    if (retries > 0) {
+      await new Promise((r) => setTimeout(r, 500));
+      return fetchWithRetry(url, retries - 1);
+    }
+    throw err;
+  }
+}
+
 async function fetchAllRepos(username) {
   let page = 1;
   let all = [];
   let hasMore = true;
 
   while (hasMore) {
-    const resp = await fetch(
+    const data = await fetchWithRetry(
       `https://api.github.com/users/${username}/repos?per_page=100&page=${page}`,
     );
 
-    await checkRateLimit(resp);
-
-    if (!resp.ok) throw new Error("Помилка завантаження репозиторіїв");
-
-    const data = await resp.json();
     all = [...all, ...data];
 
     if (data.length < 100) {
@@ -60,6 +101,14 @@ function clearError() {
   document.getElementById("error").style.display = "none";
 }
 
+function showSkeleton() {
+  document.getElementById("loader").classList.add("skeleton");
+}
+
+function hideSkeleton() {
+  document.getElementById("loader").classList.remove("skeleton");
+}
+
 async function getStats() {
   const username = document.getElementById("username").value.trim();
   const loader = document.getElementById("loader");
@@ -72,15 +121,29 @@ async function getStats() {
   clearError();
 
   try {
-    const userResp = await fetch(`https://api.github.com/users/${username}`);
-    await checkRateLimit(userResp);
+    const cached = getCache(username);
 
-    if (!userResp.ok) throw new Error("Користувача не знайдено");
+    let user, repos;
 
-    const user = await userResp.json();
-    const repos = await fetchAllRepos(username);
+    if (cached) {
+      ({ user, repos } = cached);
+    } else {
+      user = await fetchWithRetry(
+        `https://api.github.com/users/${username}`,
+      );
+
+      repos = await fetchAllRepos(username);
+
+      setCache(username, { user, repos });
+    }
 
     displayUser(user);
+
+    if (!repos.length) {
+      document.getElementById("repos").innerHTML =
+        "<p>Немає репозиторіїв</p>";
+      return;
+    }
 
     const langData = processRepos(repos);
 
@@ -101,11 +164,30 @@ async function getStats() {
 
     card.style.display = "block";
   } catch (err) {
-    showError(err.message);
+    showError(err.message || "Щось пішло не так");
   } finally {
     loader.style.display = "none";
   }
 }
+
+function setupCopyButton() {
+  const btn = document.getElementById("copyBtn");
+
+  btn.onclick = () => {
+    const username = document.getElementById("name").innerText;
+    if (!username) return;
+
+    navigator.clipboard.writeText(username);
+
+    btn.innerText = "✅ Скопійовано";
+
+    setTimeout(() => {
+      btn.innerText = "📋 Скопіювати нік";
+    }, 1500);
+  };
+}
+
+setupCopyButton();
 
 function displayUser(user) {
   document.getElementById("avatar").src = user.avatar_url;
@@ -127,9 +209,10 @@ function processRepos(repos) {
 
   repos.forEach((repo) => {
     totalStars += repo.stargazers_count;
-    if (repo.language) {
-      languages[repo.language] = (languages[repo.language] || 0) + 1;
-    }
+
+    const lang = repo.language || "Unknown"; // fallback
+
+    languages[lang] = (languages[lang] || 0) + 1;
   });
 
   document.getElementById("star-count").innerText = totalStars;
@@ -160,11 +243,14 @@ function generateInsights(repos) {
     if (!r.language) return;
 
     langUsage[r.language] = (langUsage[r.language] || 0) + 1;
-    langStars[r.language] = (langStars[r.language] || 0) + r.stargazers_count;
+    langStars[r.language] =
+      (langStars[r.language] || 0) + r.stargazers_count;
   });
 
   const mostUsed = Object.entries(langUsage).sort((a, b) => b[1] - a[1])[0];
-  const mostStarred = Object.entries(langStars).sort((a, b) => b[1] - a[1])[0];
+  const mostStarred = Object.entries(langStars).sort(
+    (a, b) => b[1] - a[1],
+  )[0];
 
   const underrated = repos
     .filter((r) => r.forks_count > 5 && r.stargazers_count < r.forks_count)
@@ -180,12 +266,6 @@ function generateInsights(repos) {
   if (mostStarred) {
     insights.push(
       `Найуспішніша мова: ${mostStarred[0]} (${mostStarred[1]} ⭐)`,
-    );
-  }
-
-  if (mostUsed && mostStarred && mostUsed[0] !== mostStarred[0]) {
-    insights.push(
-      `Цікаво: більше коду на ${mostUsed[0]}, але більше зірок у ${mostStarred[0]}`,
     );
   }
 
@@ -239,10 +319,9 @@ async function processAdvancedStats(username, repos) {
   renderActivityChart(yearly);
 
   try {
-    const resp = await fetch(`https://api.github.com/users/${username}/events`);
-    if (!resp.ok) return;
-
-    const events = await resp.json();
+    const events = await fetchWithRetry(
+      `https://api.github.com/users/${username}/events`,
+    );
 
     if (events.length) {
       const last = new Date(events[0].created_at);
@@ -267,10 +346,6 @@ function renderActivityChart(data) {
         {
           label: "Repos per year",
           data: years.map((y) => data[y]),
-          borderColor: "#4f8cff",
-          backgroundColor: "rgba(79,140,255,0.2)",
-          fill: true,
-          tension: 0.3,
         },
       ],
     },
@@ -293,11 +368,7 @@ function renderChart(langData) {
     type: "doughnut",
     data: {
       labels: Object.keys(langData),
-      datasets: [
-        {
-          data: Object.values(langData),
-        },
-      ],
+      datasets: [{ data: Object.values(langData) }],
     },
   });
 }

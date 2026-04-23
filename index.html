@@ -29,16 +29,37 @@
       </div>
 
       <div id="error" class="error"></div>
-      <div id="loader" class="loader" style="display: none"></div>
+
+      <div id="loader" class="loader" style="display: none">
+        <div class="skeleton-card">
+          <div class="skeleton-avatar"></div>
+          <div class="skeleton-lines">
+            <div></div>
+            <div></div>
+            <div></div>
+          </div>
+        </div>
+
+        <div class="skeleton-grid">
+          <div class="skeleton-box"></div>
+          <div class="skeleton-box"></div>
+          <div class="skeleton-box"></div>
+        </div>
+      </div>
 
       <div id="profile-card" class="card" style="display: none">
         <div class="user-info">
           <img id="avatar" src="" alt="Avatar" />
+
           <div>
             <h2 id="name"></h2>
             <p id="bio"></p>
             <p id="extra"></p>
-            <a id="profile-link" target="_blank">Перейти в профіль</a>
+
+            <div class="profile-actions">
+              <a id="profile-link" target="_blank">Перейти в профіль</a>
+              <button id="copyBtn">📋 Скопіювати нік</button>
+            </div>
           </div>
         </div>
 
@@ -47,18 +68,22 @@
             <span class="label">Репозиторії</span>
             <span id="repo-count" class="value">0</span>
           </div>
+
           <div class="stat-item">
             <span class="label">Зірки</span>
             <span id="star-count" class="value">0</span>
           </div>
+
           <div class="stat-item">
             <span class="label">Підписники</span>
             <span id="followers" class="value">0</span>
           </div>
+
           <div class="stat-item">
             <span class="label">Середні зірки</span>
             <span id="avg-stars" class="value">0</span>
           </div>
+
           <div class="stat-item">
             <span class="label">Топ мова</span>
             <span id="top-lang" class="value">-</span>
@@ -66,7 +91,7 @@
         </div>
 
         <div class="top-repo">
-          <h3>Топ репозиторій</h3>
+          <h3>🔥 Топ репозиторій</h3>
           <div id="top-repo"></div>
         </div>
 
@@ -109,6 +134,11 @@
 
         <div class="repo-list">
           <h3>Репозиторії</h3>
+
+          <div id="repos-empty" style="display: none">
+            <p>У користувача немає репозиторіїв</p>
+          </div>
+
           <div id="repos"></div>
 
           <button id="loadMoreBtn" style="display: none; margin-top: 10px">

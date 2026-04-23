@@ -119,6 +119,94 @@ button:hover::after {
   animation: fadeIn 0.4s ease;
 }
 
+.profile-actions {
+  display: flex;
+  align-items: center; 
+  gap: 12px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+#copyBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,0.03);
+  color: var(--text);
+  font-size: 0.85em;
+}
+
+#copyBtn:hover {
+  border-color: var(--accent);
+  background: rgba(79, 140, 255, 0.1);
+}
+
+#repos-empty {
+  text-align: center;
+  padding: 20px;
+  color: var(--muted);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 10px;
+}
+
+.skeleton-card {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.skeleton-avatar {
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.05),
+    rgba(255, 255, 255, 0.1),
+    rgba(255, 255, 255, 0.05)
+  );
+  animation: shimmer 1.5s infinite;
+}
+
+.skeleton-lines {
+  flex: 1;
+}
+
+.skeleton-lines div {
+  height: 10px;
+  margin-bottom: 10px;
+  border-radius: 6px;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.05),
+    rgba(255, 255, 255, 0.1),
+    rgba(255, 255, 255, 0.05)
+  );
+  animation: shimmer 1.5s infinite;
+}
+
+.skeleton-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15px;
+}
+
+.skeleton-box {
+  height: 60px;
+  border-radius: var(--radius);
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.05),
+    rgba(255, 255, 255, 0.1),
+    rgba(255, 255, 255, 0.05)
+  );
+  animation: shimmer 1.5s infinite;
+}
+
 .user-info {
   display: flex;
   align-items: center;
@@ -141,9 +229,22 @@ button:hover::after {
 }
 
 #profile-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,0.03);
   color: var(--accent);
   text-decoration: none;
   font-size: 0.85em;
+  transition: 0.2s;
+}
+
+#profile-link:hover {
+  border-color: var(--accent);
+  background: rgba(79, 140, 255, 0.1);
 }
 
 .stats-grid {
@@ -161,6 +262,12 @@ button:hover::after {
 }
 
 .stat-item {
+
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  height: 80px;
+
   background: rgba(255, 255, 255, 0.03);
   padding: 15px;
   border-radius: var(--radius);
@@ -181,9 +288,12 @@ button:hover::after {
 }
 
 .value {
-  font-size: 1.3em;
-  font-weight: 600;
-  margin-top: 5px;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  min-height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .top-repo {
@@ -385,5 +495,34 @@ h3 {
 
   button {
     width: 100%;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200px 0;
+  }
+  100% {
+    background-position: 200px 0;
+  }
+}
+
+.repo-item div {
+  font-size: 0.8em;
+  color: var(--muted);
+  margin-top: 5px;
+}
+
+.top-repo a:hover {
+  text-decoration: underline;
+}
+
+button:active {
+  transform: scale(0.97);
+}
+
+@media (max-width: 600px) {
+  .profile-actions {
+    justify-content: center;
   }
 }
